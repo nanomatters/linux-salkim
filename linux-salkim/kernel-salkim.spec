@@ -13,7 +13,7 @@
 
 Name:           kernel-salkim
 Version:        7.3
-Release:        7.salkim%{?dist}
+Release:        8%{?dist}
 Summary:        Linux kernel with Salkim AMDGPU and ntsync IOCP improvements
 License:        GPL-2.0-only
 URL:            https://github.com/nanomatters/linux-cachyos
@@ -36,6 +36,7 @@ BuildRequires:  gcc
 BuildRequires:  gettext-devel
 BuildRequires:  kmod
 BuildRequires:  make
+BuildRequires:  openssl
 BuildRequires:  openssl-devel
 BuildRequires:  perl-interpreter
 BuildRequires:  python3
@@ -241,7 +242,7 @@ ln -s %{devel_dir} %{buildroot}%{kernel_dir}/source
         -printf '%{kernel_dir}/%f\n'
     for suffix in alias alias.bin builtin.alias.bin builtin.bin dep dep.bin \
                   devname softdep symbols symbols.bin weakdep; do
-        printf '%%ghost %{kernel_dir}/modules.%s\n' "$suffix"
+        printf '%s\n' "%%ghost %{kernel_dir}/modules.$suffix"
     done
 } > modules.list
 
