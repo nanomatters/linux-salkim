@@ -1,0 +1,148 @@
+Subject: [PATCH] drm/amdgpu: Complete prepared VM updates after errors
+
+Propagate PTE update errors and complete any queued work before returning
+an error. Preserve the original failure and release empty SDMA jobs.
+
+Requires preserving the current job on rollover failure and retaining
+failed clears for retry.
+
+---
+diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_vm.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_vm.c
+index 6feceff..ce5a17e 100644
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_vm.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_vm.c
+@@ -998,7 +998,7 @@ int amdgpu_vm_update_pdes(struct amdgpu_device *adev,
+ 	struct amdgpu_vm_update_params params;
+ 	struct amdgpu_vm_bo_base *entry, *tmp;
+ 	bool flush_tlb_needed = false;
+-	int r, idx;
++	int r, ret, idx;
+ 
+ 	amdgpu_vm_assert_locked(vm);
+ 
+@@ -1024,15 +1024,17 @@ int amdgpu_vm_update_pdes(struct amdgpu_device *adev,
+ 
+ 		r = amdgpu_vm_pde_update(&params, entry);
+ 		if (r)
+-			goto error;
++			break;
+ 	}
+ 
+-	r = vm->update_funcs->commit(&params, &vm->last_update);
+-	if (r)
+-		goto error;
++	ret = vm->update_funcs->commit(&params, &vm->last_update);
++	if (!r)
++		r = ret;
+ 
+ 	if (flush_tlb_needed)
+ 		atomic64_inc(&vm->tlb_seq);
++	if (r)
++		goto error;
+ 
+ 	list_for_each_entry_safe(entry, tmp, &vm->kernel.needs_update,
+ 				 vm_status)
+@@ -1134,7 +1136,7 @@ int amdgpu_vm_update_range(struct amdgpu_device *adev, struct amdgpu_vm *vm,
+ 	struct amdgpu_vm_tlb_seq_struct *tlb_cb;
+ 	struct amdgpu_vm_update_params params;
+ 	struct amdgpu_res_cursor cursor;
+-	int r, idx;
++	int r, ret, idx;
+ 
+ 	if (!drm_dev_enter(adev_to_drm(adev), &idx))
+ 		return -ENODEV;
+@@ -1233,14 +1235,17 @@ int amdgpu_vm_update_range(struct amdgpu_device *adev, struct amdgpu_vm *vm,
+ 		tmp = start + num_entries;
+ 		r = amdgpu_vm_ptes_update(&params, start, tmp, addr, flags);
+ 		if (r)
+-			goto error_free;
++			break;
+ 
+ 		amdgpu_res_next(&cursor, num_entries * AMDGPU_GPU_PAGE_SIZE);
+ 		start = tmp;
+ 	}
+ 
+-	r = vm->update_funcs->commit(&params, fence);
+-	if (r)
++	/* Publish any queued prefix, including when a later range failed. */
++	ret = vm->update_funcs->commit(&params, fence);
++	if (!r)
++		r = ret;
++	if (ret)
+ 		goto error_free;
+ 
+ 	if (params.needs_flush) {
+diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_vm_pt.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_vm_pt.c
+index cef4171..31d33af 100644
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_vm_pt.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_vm_pt.c
+@@ -369,7 +369,7 @@ int amdgpu_vm_pt_clear(struct amdgpu_device *adev, struct amdgpu_vm *vm,
+ 	struct amdgpu_bo *bo = &vmbo->bo;
+ 	uint64_t value = 0, flags = 0;
+ 	uint64_t addr;
+-	int r, idx;
++	int r, ret, idx;
+ 
+ 	/* Figure out our place in the hierarchy */
+ 	if (ancestor->parent) {
+@@ -419,10 +419,10 @@ int amdgpu_vm_pt_clear(struct amdgpu_device *adev, struct amdgpu_vm *vm,
+ 
+ 	r = vm->update_funcs->update(&params, vmbo, addr, 0, entries,
+ 				     value, flags);
+-	if (r)
+-		goto exit;
+ 
+-	r = vm->update_funcs->commit(&params, &vm->last_update);
++	ret = vm->update_funcs->commit(&params, &vm->last_update);
++	if (!r)
++		r = ret;
+ exit:
+ 	drm_dev_exit(idx);
+ 	return r;
+@@ -672,7 +672,7 @@ static void amdgpu_vm_pte_update_noretry_flags(struct amdgpu_device *adev,
+  *
+  * Make sure to set the right flags for the PTEs at the desired level.
+  */
+-static void amdgpu_vm_pte_update_flags(struct amdgpu_vm_update_params *params,
++static int amdgpu_vm_pte_update_flags(struct amdgpu_vm_update_params *params,
+ 				       struct amdgpu_bo_vm *pt,
+ 				       unsigned int level,
+ 				       uint64_t pe, uint64_t addr,
+@@ -706,7 +706,7 @@ static void amdgpu_vm_pte_update_flags(struct amdgpu_vm_update_params *params,
+ 	if (level == AMDGPU_VM_PTB)
+ 		amdgpu_vm_pte_update_noretry_flags(adev, &flags);
+ 
+-	params->vm->update_funcs->update(params, pt, pe, addr, count, incr,
++	return params->vm->update_funcs->update(params, pt, pe, addr, count, incr,
+ 					 flags);
+ }
+ 
+@@ -896,9 +896,11 @@ int amdgpu_vm_ptes_update(struct amdgpu_vm_update_params *params,
+ 						    upd_flags,
+ 						    vm->task_info ? vm->task_info->tgid : 0,
+ 						    vm->immediate.fence_context);
+-			amdgpu_vm_pte_update_flags(params, to_amdgpu_bo_vm(pt),
++			r = amdgpu_vm_pte_update_flags(params, to_amdgpu_bo_vm(pt),
+ 						   cursor.level, pe_start, dst,
+ 						   nptes, incr, upd_flags);
++			if (r)
++				return r;
+ 
+ 			pe_start += nptes * 8;
+ 			dst += nptes * incr;
+diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_vm_sdma.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_vm_sdma.c
+index 049bdf2..cca19a2 100644
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_vm_sdma.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_vm_sdma.c
+@@ -113,7 +113,10 @@ static int amdgpu_vm_sdma_commit(struct amdgpu_vm_update_params *p,
+ 	ring = container_of(p->vm->delayed.rq->sched, struct amdgpu_ring,
+ 			    sched);
+ 
+-	WARN_ON(ib->length_dw == 0);
++	if (!ib->length_dw) {
++		amdgpu_job_free(p->job);
++		return 0;
++	}
+ 	amdgpu_ring_pad_ib(ring, ib);
+ 
+ 	if (p->needs_flush)

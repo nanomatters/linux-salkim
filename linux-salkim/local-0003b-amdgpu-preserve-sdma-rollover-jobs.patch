@@ -1,0 +1,48 @@
+Subject: [PATCH] drm/amdgpu: Preserve SDMA jobs across rollover failures
+
+Allocate the next job and copy dependencies before submitting the current
+job. Leave the current job available for completion if allocation or
+adding a dependency fails.
+
+---
+diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_vm_sdma.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_vm_sdma.c
+index 652266e..049bdf2 100644
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_vm_sdma.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_vm_sdma.c
+@@ -245,15 +245,32 @@ static int amdgpu_vm_sdma_update(struct amdgpu_vm_update_params *p,
+ 		ndw -= p->job->ibs->length_dw;
+ 
+ 		if (ndw < 32) {
+-			r = amdgpu_vm_sdma_commit(p, NULL);
+-			if (r)
+-				return r;
++			struct amdgpu_vm_update_params next = *p;
++			unsigned long index;
+ 
+-			r = amdgpu_vm_sdma_alloc_job(p, count,
++			/* Keep the current job available for error-path completion. */
++			r = amdgpu_vm_sdma_alloc_job(&next, count,
+ 						     AMDGPU_KERNEL_JOB_ID_VM_UPDATE);
+ 			if (r)
+ 				return r;
+ 
++			xa_for_each(&p->job->base.dependencies, index, fence) {
++				r = drm_sched_job_add_dependency(&next.job->base,
++							 dma_fence_get(fence));
++				if (r) {
++					amdgpu_job_free(next.job);
++					return r;
++				}
++			}
++
++			r = amdgpu_vm_sdma_commit(p, NULL);
++			if (r) {
++				amdgpu_job_free(next.job);
++				return r;
++			}
++			p->job = next.job;
++			p->num_dw_left = next.num_dw_left;
++
+ 			/* The estimate above describes the job which was just
+ 			 * submitted, take the budget of the newly allocated one.
+ 			 */

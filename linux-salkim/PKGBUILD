@@ -199,7 +199,12 @@ unset _commit
 source+=("local-0001-amdgpu-separate-tlb-invalidation-fences.patch")
 source+=("local-0002-ntsync-add-iocp-support.patch")
 source+=("local-0003a-amdgpu-fix-dependency-fence-references.patch")
-source+=("local-0003b-amdgpu-batch-pending-vm-updates.patch")
+source+=("local-0003b-amdgpu-preserve-sdma-rollover-jobs.patch")
+source+=("local-0003c-amdgpu-retain-failed-vm-clears.patch")
+source+=("local-0003d-amdgpu-complete-failed-vm-updates.patch")
+source+=("local-0003e-amdgpu-factor-vm-update-helpers.patch")
+source+=("local-0003f-amdgpu-batch-bo-mapping-updates.patch")
+source+=("local-0003g-amdgpu-batch-freed-range-updates.patch")
 source+=("local-0004-amdgpu-send-hdmi-vrr-metadata-in-vtem-slot.patch")
 source+=("local-0005-amdgpu-batch-sparse-va-operations.patch")
 source+=("local-0006-amdgpu-share-sparse-bo-update-batches.patch")
@@ -608,14 +613,19 @@ b2sums=('b7fb8c74de664fdd0cd7b42afff2720bda5c4bdb2ffffa80a745c5fecd029c6fe739a3e
         '681fb61a83c7e6d4f3dbbf7932d0af1d383ba708d97ced78a398c1c07802ad06fd8f97c4b2dfe4894a2f056d92155dc4e2433c1bd25d4f6cdf3f19dae931ef35'
         '81c5d819e50e8a00303c9b13a76c1dc42acaa7eba92626e98c096f7710b4032b1735ecc70e41ecc4cff052bbda72ea184975e7b1b41a39470c5d84b1ee4c31c3'
         '38e980a205557eac078cdb4746514521e3c2241f7508087d328f8ddd95afe2590d1f8eb5092100b25bb877847f828fe4c38547985dee7bdea33f1989ce887066'
-        'fddb70eb32518760b6e42d3f2903b2c9e86084add6d3fcb1ba02212c815a538f7c6f68f3327695f212b6b48743c647959a805be5b5de22e292b126a4386be098'
+        '9cf9eca5cb3f48f2f41045ad7af60688f2a9a6e7fc4198fd2ea48a58522c206c06bf78fdc7c8aea78f427b4fc12d46c276be6adf5833e73372be9d5ec3b55b2f'
+        '7c653cd4b381ce749974c8d801776cb0b5cea78fb97c2a8da18e7ea48993155f35f5732918c26a47a50b87d198bf5f3ade1830a14a34b1202cddb09824275e85'
+        '2882c9bec26f18077d0478474314c1b5794acc419d7cf05b53d8f5a60736701e829b6881b136371f42a92b2aeda29e4f29940869ec73aabccec7462602c306fc'
+        '4e6377970ee622920aaa7ad66659a37ad33a1720e0072017fd1dfe3f4922f083599e730ac1a99611486c76a8b4a9c31d8cabacf84e5e05aabecfd3943ae7a61f'
+        'e43a90d1cd80ee309fa293f6a6d0737bf3a7c7fdeb92cee30844cf4030d404e54d943573a52aa92df0b7f4a330a7ebf8a9c0ab11e4572db1462c9c3721c5ffad'
+        'efbdae38ec235772927d443d17e30bbb38a252f68ac599ddf656af6a3ff6aebd9670dedb1e9f9ef3e4aab12b2dff45041de14b9cbddd079e71b6ec1d48771917'
         '9f1a1fd64389f8beab6a964c928e6ac7e319b2b53b2c1f318d61f1ce5b2720f857a10e8ad01186412c782068d18f9edc8a6e512745d731c8c1178be7e79420ae'
         'f23f51ce12b0289d3ca04fe778050d673ba2cda71db01ef69dcd8517ee36771e5467ec8d97933aa5474d4ea907a92096f1e477228866206e09ed851777bdd724'
         '866ca64b6bcf56600c705a6b9b70c1b9c4fbc4aa7dcf3dad2412fd6562145be84f2aa8c17482a0130c0a58dd1d04fb70b02221ec1fae2e92dffe9eca6c3c51c7'
         'ec9ba2952d3c1572563e7bf4d5f9949f421d2e8bd41aff2dbf849add8a6e8ec7a4a1e1df173c7d50d3dae31c6b04f34fa26ea437fbf7b623ef6cb30ec138ba21'
         '13f430458c1d4a4d9115a634e30e4ab76c9e89accbba7b48f572b3c5d3d8319ae6c09b077e66d22f20327cb06fb70d3e7e1ff639314c8ac0828d6c1bba49885f'
         '234be9e9ebaffaff048700784667edd08ce19476a589e27f406e1f69a7bc06bbb267caaeef741bfdabfbee191ba28c6c89e584ffc84a60352d6c628cb6624ff4'
-        'a498f9456ff7922ac5fa9a7dd0007f1e35e29cbab86484e02ab560af6d0efc82b000d798e757ef3ba7ee351177c52cadd4bd1bda67788913c636dc3b6aa6ca44'
+        '2aaee659e8ab4f6fdb67d17799dfc67200c17bdaca8a954af1629693a3f3ce2bdec2ee7c8fbb1c5c26635783aac8e33c8e8078c0e4a7b907e4bd705ff845a83d'
         '9cbdca3774005af7e7be012ebb84727675de70c1295015d65bf4f2b937bb60c3921fb553598fa55fa9c84074a2cd015c396df085afa582eb94a547b982387868'
         'd45d30f228913ad27928fe046df6fca0b7822c9d6041a8b394a8c51117e3eb9c1e3cd1ec32e55287bc711285b88c7bb4dd544de7b488475e7d43e29a714ece92'
         '8b783cd9704e979d1d1d0a9474ab89b2eaa1ca1b8636485d581f9d625e8632cd2fb61b7908bb276de6a2df3ec481140700e4383d23a633523c941033d2670e38'
