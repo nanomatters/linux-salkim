@@ -1,11 +1,13 @@
+From: Erhan Bilgili <erhan.bilgili@gmail.com>
 Subject: [PATCH] drm/amdgpu: Fix duplicate dependency fence releases
 
 drm_sched_job_add_dependency() consumes its fence reference on success
-and failure. Do not drop the transferred reference again if dependency
-allocation fails.
+and failure. Do not release the fence again if
+drm_sched_job_add_dependency() fails.
 
 Fixes: 41cc108b2451 ("drm/amdgpu: fix missing dma_fence_put in error path")
 Fixes: c1c4a8b21721 ("drm/amdgpu: grab extra fence reference for drm_sched_job_add_dependency")
+Signed-off-by: Erhan Bilgili <erhan.bilgili@gmail.com>
 ---
 diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_sync.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_sync.c
 index d6ae997..4f31021 100644
