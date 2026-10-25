@@ -1,7 +1,7 @@
 pkgbase = linux-salkim
 	pkgdesc = Linux Salkim kernel with AMDGPU and ntsync IOCP improvements
 	pkgver = 7.3
-	pkgrel = 7
+	pkgrel = 8
 	url = https://www.kernel.org/
 	arch = x86_64
 	license = GPL-2.0-only
@@ -80,6 +80,7 @@ pkgbase = linux-salkim
 	source = local-0014-amdgpu-complete-allm-mode-signalling.patch
 	source = local-0015-drm-parse-amd-freesync-ranges.patch
 	source = local-0016-amdgpu-use-common-freesync-parser.patch
+	source = local-0017-amdgpu-preserve-dc-scanout-positions.patch
 	source = https://raw.githubusercontent.com/cachyos/kernel-patches/master/7.3/misc/dkms-clang.patch
 	b2sums = b7fb8c74de664fdd0cd7b42afff2720bda5c4bdb2ffffa80a745c5fecd029c6fe739a3ecbdaa5c5e27194a8acb9bf861271e7bafe6eb475bb3ccd6862e4caf60
 	b2sums = 49574923722de09cdd10150a11893cbd085573e52bbd043bdf07219756f807274507f3c8d787cae889efa97db4fc4ca21d8598d13821c9f76728da473ecb4ef2
@@ -131,6 +132,7 @@ pkgbase = linux-salkim
 	b2sums = a52bff4461c5809f04e56e46b6d64f103723c5c2e32e847eb0bf0fc3ada22b0275aa26a89dfde25e3961c06817a24411a397cc9fc89d1cce55790ca6868ca66c
 	b2sums = 87c41ce7d7057f42ce857ef34048170d74a4f947df44522ba29eced0edad59b8f9068b2d91286a00c61233323767e99cf1028c56fe64f614ef92e9cdb39988ab
 	b2sums = 54b8547fdca175b7b08ea9f2610a97044dfc05c975b044552215e013d5adc3e2c843583763b75e54a73b80787180ba4c84cf1c31ff219926c9dbf6bfc88b99b3
+	b2sums = 0a684ce7af889b47c2488eb2f26ae288b4e3d5c98328a9d9aec67e54f0db4b8dc1c55ab1ca1df2a2e96add6e7a44fac23d6c178f4d11a1bc61feffb2cf02b0c1
 	b2sums = c992567bd7dd8553432be496ffa1c17e2f5ebe9c7edb51945cf977e1b742dd6517c210d8843bb82744ca705efd07f8027cd7dde41b50215ebd707a34aa81462e
 
 pkgname = linux-salkim
