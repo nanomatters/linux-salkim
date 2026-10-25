@@ -198,7 +198,8 @@ unset _commit
 
 source+=("local-0001-amdgpu-separate-tlb-invalidation-fences.patch")
 source+=("local-0002-ntsync-add-iocp-support.patch")
-source+=("local-0003-amdgpu-batch-pending-vm-updates.patch")
+source+=("local-0003a-amdgpu-fix-dependency-fence-references.patch")
+source+=("local-0003b-amdgpu-batch-pending-vm-updates.patch")
 source+=("local-0004-amdgpu-send-hdmi-vrr-metadata-in-vtem-slot.patch")
 source+=("local-0005-amdgpu-batch-sparse-va-operations.patch")
 source+=("local-0006-amdgpu-share-sparse-bo-update-batches.patch")
@@ -606,7 +607,8 @@ b2sums=('b7fb8c74de664fdd0cd7b42afff2720bda5c4bdb2ffffa80a745c5fecd029c6fe739a3e
         'ec3ddd0617bf1c2fd61fd292fd2685e8e6e86fa63825c468894f67c58985055dfa75d45d65960fb92225cd46cb3ca2cfdeb77ab14c99dce97667e13a6c53e497'
         '681fb61a83c7e6d4f3dbbf7932d0af1d383ba708d97ced78a398c1c07802ad06fd8f97c4b2dfe4894a2f056d92155dc4e2433c1bd25d4f6cdf3f19dae931ef35'
         '81c5d819e50e8a00303c9b13a76c1dc42acaa7eba92626e98c096f7710b4032b1735ecc70e41ecc4cff052bbda72ea184975e7b1b41a39470c5d84b1ee4c31c3'
-        '73c48813f4a35a42c6334956003090b8ae3b579a322613c63473ef7bf3ce7f2068bfd539eb9aa54e8d41638b3669a28b3354f32f1cf0fbf6662fb79a536d702d'
+        '6759a34d5177a5982eeed842b7325ba9c59adfbc621ca66e1f6ea38acddd8bc62dca50a2fb1d70ce7b99a3776cb9b0d1730f36e54f8de1885357d0621859e748'
+        'fddb70eb32518760b6e42d3f2903b2c9e86084add6d3fcb1ba02212c815a538f7c6f68f3327695f212b6b48743c647959a805be5b5de22e292b126a4386be098'
         '9f1a1fd64389f8beab6a964c928e6ac7e319b2b53b2c1f318d61f1ce5b2720f857a10e8ad01186412c782068d18f9edc8a6e512745d731c8c1178be7e79420ae'
         'f23f51ce12b0289d3ca04fe778050d673ba2cda71db01ef69dcd8517ee36771e5467ec8d97933aa5474d4ea907a92096f1e477228866206e09ed851777bdd724'
         '866ca64b6bcf56600c705a6b9b70c1b9c4fbc4aa7dcf3dad2412fd6562145be84f2aa8c17482a0130c0a58dd1d04fb70b02221ec1fae2e92dffe9eca6c3c51c7'

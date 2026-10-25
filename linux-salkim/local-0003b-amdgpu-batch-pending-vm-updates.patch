@@ -7,24 +7,7 @@ Keep CPU updates on the per-range path.
 Carry dependencies across job splits and report submitted work on
 partial failure. Keep unfinished mappings pending.
 
-Fix double puts of fences consumed by the scheduler dependency helper.
 ---
-diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_sync.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_sync.c
-index d6ae997..4f31021 100644
---- a/drivers/gpu/drm/amd/amdgpu/amdgpu_sync.c
-+++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_sync.c
-@@ -447,10 +447,8 @@ int amdgpu_sync_push_to_job(struct amdgpu_sync *sync, struct amdgpu_job *job)
- 
- 		dma_fence_get(f);
- 		r = drm_sched_job_add_dependency(&job->base, f);
--		if (r) {
--			dma_fence_put(f);
-+		if (r)
- 			return r;
--		}
- 	}
- 	return 0;
- }
 diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_vm.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_vm.c
 index 95eeaad..a000f1a 100644
 --- a/drivers/gpu/drm/amd/amdgpu/amdgpu_vm.c
@@ -504,7 +487,7 @@ index cef4171..31d33af 100644
  			pe_start += nptes * 8;
  			dst += nptes * incr;
 diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_vm_sdma.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_vm_sdma.c
-index eb8cf0d..cca19a2 100644
+index 652266e..cca19a2 100644
 --- a/drivers/gpu/drm/amd/amdgpu/amdgpu_vm_sdma.c
 +++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_vm_sdma.c
 @@ -113,7 +113,10 @@ static int amdgpu_vm_sdma_commit(struct amdgpu_vm_update_params *p,
@@ -519,15 +502,7 @@ index eb8cf0d..cca19a2 100644
  	amdgpu_ring_pad_ib(ring, ib);
  
  	if (p->needs_flush)
-@@ -234,7 +237,6 @@ static int amdgpu_vm_sdma_update(struct amdgpu_vm_update_params *p,
- 		dma_fence_get(fence);
- 		r = drm_sched_job_add_dependency(&p->job->base, fence);
- 		if (r) {
--			dma_fence_put(fence);
- 			dma_resv_iter_end(&cursor);
- 			return r;
- 		}
-@@ -246,15 +248,32 @@ static int amdgpu_vm_sdma_update(struct amdgpu_vm_update_params *p,
+@@ -245,15 +248,32 @@ static int amdgpu_vm_sdma_update(struct amdgpu_vm_update_params *p,
  		ndw -= p->job->ibs->length_dw;
  
  		if (ndw < 32) {

@@ -1,0 +1,37 @@
+Subject: [PATCH] drm/amdgpu: Fix duplicate dependency fence releases
+
+drm_sched_job_add_dependency() consumes its fence reference on success
+and failure. Do not drop the transferred reference again if dependency
+allocation fails.
+
+Fixes: 41cc108b2451 ("drm/amdgpu: fix missing dma_fence_put in error path")
+Fixes: c1c4a8b21721 ("drm/amdgpu: grab extra fence reference for drm_sched_job_add_dependency")
+---
+diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_sync.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_sync.c
+index d6ae997..4f31021 100644
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_sync.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_sync.c
+@@ -447,10 +447,8 @@ int amdgpu_sync_push_to_job(struct amdgpu_sync *sync, struct amdgpu_job *job)
+ 
+ 		dma_fence_get(f);
+ 		r = drm_sched_job_add_dependency(&job->base, f);
+-		if (r) {
+-			dma_fence_put(f);
++		if (r)
+ 			return r;
+-		}
+ 	}
+ 	return 0;
+ }
+diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_vm_sdma.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_vm_sdma.c
+index eb8cf0d..652266e 100644
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_vm_sdma.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_vm_sdma.c
+@@ -234,7 +234,6 @@ static int amdgpu_vm_sdma_update(struct amdgpu_vm_update_params *p,
+ 		dma_fence_get(fence);
+ 		r = drm_sched_job_add_dependency(&p->job->base, fence);
+ 		if (r) {
+-			dma_fence_put(fence);
+ 			dma_resv_iter_end(&cursor);
+ 			return r;
+ 		}

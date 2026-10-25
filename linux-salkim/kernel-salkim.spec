@@ -90,20 +90,21 @@ Patch031:       https://gitlab.freedesktop.org/drm/misc/kernel/-/commit/b537d87d
 Patch032:       https://gitlab.freedesktop.org/drm/misc/kernel/-/commit/1ba6405638439a4214783965538b0196c8de8a5b.patch
 Patch033:       local-0001-amdgpu-separate-tlb-invalidation-fences.patch
 Patch034:       local-0002-ntsync-add-iocp-support.patch
-Patch035:       local-0003-amdgpu-batch-pending-vm-updates.patch
-Patch036:       local-0004-amdgpu-send-hdmi-vrr-metadata-in-vtem-slot.patch
-Patch037:       local-0005-amdgpu-batch-sparse-va-operations.patch
-Patch038:       local-0006-amdgpu-share-sparse-bo-update-batches.patch
-Patch039:       local-0007-amdgpu-share-prt-update-batches.patch
-Patch040:       local-0008-amdgpu-grow-sdma-update-buffers.patch
-Patch041:       local-0009-amdgpu-scope-batch-retirements.patch
-Patch042:       local-0010-amdgpu-honor-completed-sparse-dependencies.patch
-Patch043:       local-0011-amdgpu-honor-passive-vrr-in-vtem.patch
-Patch044:       local-0012-amdgpu-fallback-to-cea-vrr-ranges.patch
-Patch045:       local-0013-amdgpu-enable-hdmi-vrr-on-pcon.patch
-Patch046:       local-0014-amdgpu-complete-allm-mode-signalling.patch
-Patch047:       local-0015-drm-parse-amd-freesync-ranges.patch
-Patch048:       local-0016-amdgpu-use-common-freesync-parser.patch
+Patch035:       local-0003a-amdgpu-fix-dependency-fence-references.patch
+Patch036:       local-0003b-amdgpu-batch-pending-vm-updates.patch
+Patch037:       local-0004-amdgpu-send-hdmi-vrr-metadata-in-vtem-slot.patch
+Patch038:       local-0005-amdgpu-batch-sparse-va-operations.patch
+Patch039:       local-0006-amdgpu-share-sparse-bo-update-batches.patch
+Patch040:       local-0007-amdgpu-share-prt-update-batches.patch
+Patch041:       local-0008-amdgpu-grow-sdma-update-buffers.patch
+Patch042:       local-0009-amdgpu-scope-batch-retirements.patch
+Patch043:       local-0010-amdgpu-honor-completed-sparse-dependencies.patch
+Patch044:       local-0011-amdgpu-honor-passive-vrr-in-vtem.patch
+Patch045:       local-0012-amdgpu-fallback-to-cea-vrr-ranges.patch
+Patch046:       local-0013-amdgpu-enable-hdmi-vrr-on-pcon.patch
+Patch047:       local-0014-amdgpu-complete-allm-mode-signalling.patch
+Patch048:       local-0015-drm-parse-amd-freesync-ranges.patch
+Patch049:       local-0016-amdgpu-use-common-freesync-parser.patch
 
 %description
 Salkim's Linux kernel with AMDGPU sparse-mapping optimisations, HDMI/VRR
