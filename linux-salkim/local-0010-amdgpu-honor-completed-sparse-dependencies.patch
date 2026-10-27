@@ -106,8 +106,8 @@ diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_vm.c b/drivers/gpu/drm/amd/amdgpu
   * @vm: requested vm
 + * @freed: retired mappings to clear; unfinished records remain on this list
 + * @mode: reservation dependencies required for these retirements
-  * @fence: optional fence for submitted clears, including on partial failure.
-  *         Unchanged if no work was submitted
+  * @fence: optional fence for successful clear operations, including when
+  *         a later clear fails
   *
 @@ -1750,9 +1752,9 @@
   * 0 for success.

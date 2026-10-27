@@ -1,3 +1,4 @@
+From eff3502eac35f5632830324baf4001f33b3b4fc2 Mon Sep 17 00:00:00 2001
 From: Erhan Bilgili <erhan.bilgili@gmail.com>
 Date: Sun, 25 Oct 2026 08:29:27 +0100
 Subject: [PATCH] drm/amdgpu: Fix DC scanout position handling
@@ -13,34 +14,25 @@ range.
 The 13 bit mask truncates positions above 8191, causing early VRR
 timestamps and missed vblank count adjustments.
 
-Fixes: e806208dc1da ("drm/amd/display: Fix slow FPS.")
+Fixes: d38ceaf99ed0 ("drm/amdgpu: add core driver (v4)")
 Cc: stable@vger.kernel.org
 Signed-off-by: Erhan Bilgili <erhan.bilgili@gmail.com>
 ---
- drivers/gpu/drm/amd/amdgpu/amdgpu_display.c | 10 ++++++----
- 1 file changed, 6 insertions(+), 4 deletions(-)
+ drivers/gpu/drm/amd/amdgpu/amdgpu_display.c | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
 
 diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_display.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_display.c
-index 59ea338b554c..ba370c742133 100644
+index 0a8dd7241750..9ceb2921ccec 100644
 --- a/drivers/gpu/drm/amd/amdgpu/amdgpu_display.c
 +++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_display.c
-@@ -1767,6 +1767,8 @@
- 	bool in_vbl = true;
- 
- 	struct amdgpu_device *adev = drm_to_adev(dev);
-+	/* DC packs decoded values into 16 bit fields. */
-+	const u32 scanout_mask = adev->dc_enabled ? 0xffff : 0x1fff;
- 
- 	/* preempt_disable_rt() should go right here in PREEMPT_RT patchset. */
- 
-@@ -1784,15 +1786,15 @@
+@@ -1784,15 +1784,15 @@ int amdgpu_display_get_crtc_scanoutpos(struct drm_device *dev,
  	/* preempt_enable_rt() should go right here in PREEMPT_RT patchset. */
  
  	/* Decode into vertical and horizontal scanout position. */
 -	*vpos = position & 0x1fff;
 -	*hpos = (position >> 16) & 0x1fff;
-+	*vpos = position & scanout_mask;
-+	*hpos = (position >> 16) & scanout_mask;
++	*vpos = lower_16_bits(position);
++	*hpos = upper_16_bits(position);
  
  	/* Valid vblank area boundaries from gpu retrieved? */
  	if (vbl > 0) {
@@ -48,8 +40,8 @@ index 59ea338b554c..ba370c742133 100644
  		ret |= DRM_SCANOUTPOS_ACCURATE;
 -		vbl_start = vbl & 0x1fff;
 -		vbl_end = (vbl >> 16) & 0x1fff;
-+		vbl_start = vbl & scanout_mask;
-+		vbl_end = (vbl >> 16) & scanout_mask;
++		vbl_start = lower_16_bits(vbl);
++		vbl_end = upper_16_bits(vbl);
  	} else {
  		/* No: Fake something reasonable which gives at least ok results. */
  		vbl_start = mode->crtc_vdisplay;

@@ -1,8 +1,16 @@
 Subject: [PATCH] drm/amdgpu: Keep failed VM clears pending
 
-Remove freed mappings only after their page-table clear succeeds. Return
-the fence for any submitted prefix even when a later clear fails.
+A failed page-table clear removes and frees its mapping anyway, leaving
+stale PTEs without a pending clear and dropping the mapping's PRT reference.
+A later failure also discards the fence for earlier successful clears.
 
+Keep the failed mapping on vm->freed so a later update retries it. Command
+submission stops while a clear keeps failing. Return the fence for earlier
+successful clears even on error. GEM close already attaches and releases
+that fence on its error path through local-0001.
+
+
+Describe close errors as cleanup failures rather than claiming a leak.
 ---
 diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_vm.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_vm.c
 index 95eeaad..6feceff 100644
@@ -14,8 +22,8 @@ index 95eeaad..6feceff 100644
   * @vm: requested vm
 - * @fence: optional resulting fence (unchanged if no work needed to be done
 - * or if an error occurred)
-+ * @fence: optional fence for submitted clears, including on partial failure.
-+ *         Unchanged if no work was submitted
++ * @fence: optional fence for successful clear operations, including when
++ *         a later clear fails
   *
   * Make sure all freed BOs are cleared in the PT.
   * PTs have to be reserved and mutex must be locked!
@@ -38,7 +46,19 @@ index 95eeaad..6feceff 100644
 -		}
  	}
  
-+	/* A failed later range must not hide an already submitted prefix. */
++	/* Preserve the fence for earlier successful clears on error. */
  	if (fence && f) {
  		dma_fence_put(*fence);
  		*fence = f;
+diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_gem.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_gem.c
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_gem.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_gem.c
+@@ -377,7 +377,7 @@
+ 
+ out_unlock:
+ 	if (r && !drm_dev_is_unplugged(adev_to_drm(adev)))
+-		dev_err(adev->dev, "leaking bo va (%ld)\n", r);
++		dev_err(adev->dev, "BO VA cleanup failed (%ld)\n", r);
+ 	drm_exec_fini(&exec);
+ }
+ 

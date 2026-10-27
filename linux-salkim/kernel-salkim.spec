@@ -13,7 +13,7 @@
 
 Name:           kernel-salkim
 Version:        7.3
-Release:        8%{?dist}
+Release:        9%{?dist}
 Summary:        Linux kernel with Salkim AMDGPU and ntsync IOCP improvements
 License:        GPL-2.0-only
 URL:            https://github.com/nanomatters/linux-cachyos
@@ -111,6 +111,7 @@ Patch051:       local-0013-amdgpu-enable-hdmi-vrr-on-pcon.patch
 Patch052:       local-0014-amdgpu-complete-allm-mode-signalling.patch
 Patch053:       local-0015-drm-parse-amd-freesync-ranges.patch
 Patch054:       local-0016-amdgpu-use-common-freesync-parser.patch
+Patch055:       local-0017-amdgpu-preserve-dc-scanout-positions.patch
 
 %description
 Salkim's Linux kernel with AMDGPU sparse-mapping optimisations, HDMI/VRR

@@ -2,12 +2,12 @@ Subject: [PATCH] drm/amdgpu: Grow delayed VM update IBs on rollover
 
 Grow full delayed-update IBs up to the existing limit. Preserve immediate
 allocation sizes and allocation error handling.
+
 ---
 diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_vm_sdma.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_vm_sdma.c
-index cca19a21b35..001b8d2aa7f 100644
 --- a/drivers/gpu/drm/amd/amdgpu/amdgpu_vm_sdma.c
 +++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_vm_sdma.c
-@@ -38,9 +38,10 @@ static int amdgpu_vm_sdma_map_table(struct amdgpu_bo_vm *table)
+@@ -38,9 +38,10 @@
  	return amdgpu_ttm_alloc_gart(&table->bo.tbo);
  }
  
@@ -20,7 +20,7 @@ index cca19a21b35..001b8d2aa7f 100644
  {
  	enum amdgpu_ib_pool_type pool = p->immediate ? AMDGPU_IB_POOL_IMMEDIATE
  		: AMDGPU_IB_POOL_DELAYED;
-@@ -53,6 +54,8 @@ static int amdgpu_vm_sdma_alloc_job(struct amdgpu_vm_update_params *p,
+@@ -53,6 +54,8 @@
  	ndw = AMDGPU_VM_SDMA_MIN_NUM_DW;
  	if (p->pages_addr)
  		ndw += count * 2;
@@ -29,7 +29,7 @@ index cca19a21b35..001b8d2aa7f 100644
  	ndw = min(ndw, AMDGPU_VM_SDMA_MAX_NUM_DW);
  
  	r = amdgpu_job_alloc_with_ib(p->adev, entity, AMDGPU_FENCE_OWNER_VM,
-@@ -79,7 +82,7 @@ static int amdgpu_vm_sdma_prepare(struct amdgpu_vm_update_params *p,
+@@ -79,7 +82,7 @@
  {
  	int r;
  
@@ -38,16 +38,16 @@ index cca19a21b35..001b8d2aa7f 100644
  	if (r)
  		return r;
  
-@@ -249,10 +252,11 @@ static int amdgpu_vm_sdma_update(struct amdgpu_vm_update_params *p,
+@@ -266,9 +269,11 @@
+ 		ndw -= p->job->ibs->length_dw;
  
  		if (ndw < 32) {
- 			struct amdgpu_vm_update_params next = *p;
 +			unsigned int size_dw = drm_suballoc_size(p->job->ibs->sa_bo) / 4;
- 			unsigned long index;
- 
- 			/* Keep the current job available for error-path completion. */
--			r = amdgpu_vm_sdma_alloc_job(&next, count,
-+			r = amdgpu_vm_sdma_alloc_job(&next, count, size_dw * 2,
++
+ 			/* Submit before allocating another buffer from the shared pool. */
+ 			amdgpu_vm_sdma_submit(p);
+-			r = amdgpu_vm_sdma_alloc_job(p, count,
++			r = amdgpu_vm_sdma_alloc_job(p, count, size_dw * 2,
  						     AMDGPU_KERNEL_JOB_ID_VM_UPDATE);
  			if (r)
  				return r;

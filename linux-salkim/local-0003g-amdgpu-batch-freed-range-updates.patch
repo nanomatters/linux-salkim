@@ -74,4 +74,4 @@ index 63eeff1..ed83b4f 100644
 +			r = ret;
  	}
  
- 	/* A failed later range must not hide an already submitted prefix. */
+ 	/* Preserve the fence for earlier successful clears on error. */

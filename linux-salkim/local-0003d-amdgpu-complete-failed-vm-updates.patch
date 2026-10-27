@@ -1,10 +1,14 @@
 Subject: [PATCH] drm/amdgpu: Complete prepared VM updates after errors
 
-Propagate PTE update errors and complete any queued work before returning
-an error. Preserve the original failure and release empty SDMA jobs.
+A failed SDMA rollover allocation leaves the current job NULL. The PTE
+flags helper drops the update error, so the page-table walk can continue
+and dereference that NULL job, or incorrectly return success.
 
-Requires preserving the current job on rollover failure and retaining
-failed clears for retry.
+Propagate the error and finish prepared updates before returning it.
+With local-0003b, completion publishes the last submitted fence even
+when a later allocation failed. Keep the failed clears pending for retry.
+
+Fixes: c3546695830e ("drm/amdgpu: use the new VM backend for PTEs")
 
 ---
 diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_vm.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_vm.c
@@ -130,19 +134,3 @@ index cef4171..31d33af 100644
  
  			pe_start += nptes * 8;
  			dst += nptes * incr;
-diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_vm_sdma.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_vm_sdma.c
-index 049bdf2..cca19a2 100644
---- a/drivers/gpu/drm/amd/amdgpu/amdgpu_vm_sdma.c
-+++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_vm_sdma.c
-@@ -113,7 +113,10 @@ static int amdgpu_vm_sdma_commit(struct amdgpu_vm_update_params *p,
- 	ring = container_of(p->vm->delayed.rq->sched, struct amdgpu_ring,
- 			    sched);
- 
--	WARN_ON(ib->length_dw == 0);
-+	if (!ib->length_dw) {
-+		amdgpu_job_free(p->job);
-+		return 0;
-+	}
- 	amdgpu_ring_pad_ib(ring, ib);
- 
- 	if (p->needs_flush)

@@ -40,7 +40,7 @@ index 75094d7..c7839b4 100644
 +		r = amdgpu_vm_bo_update_batch(adev, vm, &bos);
  	if (!r)
  		r = amdgpu_vm_update_pdes(adev, vm, false);
- 	args->status = r == -ERESTARTSYS ? -EINTR : r;
+ 	/* Retry transient update failures at CS validation, as with GEM_VA. */
 diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_vm.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_vm.c
 index 67ffe12..e7997e9 100644
 --- a/drivers/gpu/drm/amd/amdgpu/amdgpu_vm.c
