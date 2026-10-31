@@ -82,9 +82,10 @@ fi
 
 pkgbase="linux-$_pkgsuffix"
 pkgver=7.3
-pkgrel=9
+pkgrel=10
 _srcname=kernel-salkim
-_branch=salkim-7.3
+# salkim-7.3; update this pin together with pkgrel.
+_kernel_commit=c13b3fdb9ad056646db31615c563c7384ddc2178
 pkgdesc='Linux Salkim kernel with AMDGPU and ntsync IOCP improvements'
 arch=('x86_64')
 url="https://github.com/nanomatters/kernel-salkim"
@@ -115,9 +116,9 @@ makedepends=(
 
 # Driver and IOCP changes are maintained on the kernel branch itself.
 source=(
-    "${_srcname}::git+${url}.git#branch=${_branch}"
+    "${_srcname}::git+${url}.git#commit=${_kernel_commit}"
     "config"
-    # These display policies from the previous package are not in the branch.
+    # These display policies from the previous package are not in the pinned commit.
     "96f023bb8c13bbe6662f28da97cf5b5787e58fe1.patch::https://github.com/CachyOS/linux/commit/96f023bb8c13bbe6662f28da97cf5b5787e58fe1.patch"
     "local-0018-amdgpu-preserve-dp-vrr-range-extension.patch"
 )

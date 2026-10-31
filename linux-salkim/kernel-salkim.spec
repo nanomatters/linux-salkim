@@ -13,7 +13,7 @@
 
 Name:           kernel-salkim
 Version:        7.3
-Release:        9%{?dist}
+Release:        10%{?dist}
 Summary:        Linux kernel with Salkim AMDGPU and ntsync IOCP improvements
 License:        GPL-2.0-only
 URL:            https://github.com/nanomatters/kernel-salkim
@@ -53,9 +53,10 @@ BuildRequires:  zstd
 %global kernel_dir /usr/lib/modules/%{kver}
 %global devel_dir /usr/src/kernels/%{kver}
 
-%global kernel_branch salkim-7.3
+# salkim-7.3; update this pin together with Release.
+%global kernel_commit c13b3fdb9ad056646db31615c563c7384ddc2178
 
-Source0:        %{url}/archive/refs/heads/%{kernel_branch}.tar.gz
+Source0:        %{url}/archive/%{kernel_commit}.tar.gz
 Source1:        config
 
 # Match PKGBUILD's GCC path. Driver and IOCP changes are already in the branch.
@@ -131,7 +132,7 @@ Requires:       %{name}-devel = %{version}-%{release}
 Installs matching Salkim kernel and development packages.
 
 %prep
-%setup -q -n kernel-salkim-%{kernel_branch}
+%setup -q -n kernel-salkim-%{kernel_commit}
 %autopatch -p1
 cp %{SOURCE1} .config
 
