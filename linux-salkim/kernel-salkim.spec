@@ -16,7 +16,7 @@ Version:        7.3
 Release:        9%{?dist}
 Summary:        Linux kernel with Salkim AMDGPU and ntsync IOCP improvements
 License:        GPL-2.0-only
-URL:            https://github.com/nanomatters/linux-cachyos
+URL:            https://github.com/nanomatters/kernel-salkim
 ExclusiveArch:  x86_64
 Requires:       %{name}-core = %{version}-%{release}
 Requires:       %{name}-modules = %{version}-%{release}
@@ -53,65 +53,14 @@ BuildRequires:  zstd
 %global kernel_dir /usr/lib/modules/%{kver}
 %global devel_dir /usr/src/kernels/%{kver}
 
-Source0:        https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-%{version}.tar.xz
+%global kernel_branch salkim-7.3
+
+Source0:        %{url}/archive/refs/heads/%{kernel_branch}.tar.gz
 Source1:        config
 
-# Match linux-salkim/PKGBUILD's GCC path (without dkms-clang.patch).
-Patch001:       https://gitlab.freedesktop.org/drm/amdgpu/kernel/-/commit/5d4a24ec3ba553bf577ea4d74804dee99a7df910.patch
-Patch002:       https://gitlab.freedesktop.org/drm/amdgpu/kernel/-/commit/f64ad63b551bfef7f20b16ea8cfa030b3b4a9bad.patch
-Patch003:       https://gitlab.freedesktop.org/drm/amdgpu/kernel/-/commit/22763a52e0894f7e31b8acc7047e0cb3f70d9eba.patch
-Patch004:       https://gitlab.freedesktop.org/agd5f/linux/-/commit/39e5b1e4f4b3e623d398299f4429756e4935a3f6.patch
-Patch005:       https://gitlab.freedesktop.org/agd5f/linux/-/commit/831fac2ac5edce9f829db0d74d852409c8ab16a0.patch
-Patch006:       https://gitlab.freedesktop.org/agd5f/linux/-/commit/871467ce5bce5c7af5d278ffa0442c49dddb82b6.patch
-Patch007:       https://gitlab.freedesktop.org/agd5f/linux/-/commit/74a61f46f3e1ec4cc6c0044358746ce573fc175b.patch
-Patch008:       https://gitlab.freedesktop.org/agd5f/linux/-/commit/063eec35f42d216daee7383e9f2bcc314f45a27a.patch
-Patch009:       https://gitlab.freedesktop.org/agd5f/linux/-/commit/25c4e6feb856075e7bcc37f03b28936a9aa954fb.patch
-Patch010:       https://gitlab.freedesktop.org/agd5f/linux/-/commit/2770817a7dd90bb80d9147123dd2d2fcb5ccf258.patch
-Patch011:       https://gitlab.freedesktop.org/agd5f/linux/-/commit/2a03ddb7740478287721feb469e359b5961e3e6e.patch
-Patch012:       https://gitlab.freedesktop.org/agd5f/linux/-/commit/81d84cb547a26df07cfb40932e66a27fccc6b9c1.patch
-Patch013:       https://gitlab.freedesktop.org/agd5f/linux/-/commit/af21fb73ee028ca95222005904de7c653a0f7371.patch
-Patch014:       https://gitlab.freedesktop.org/drm/amdgpu/kernel/-/commit/44d0d3031e47973ed65fd327669d5e2eaaf6c565.patch
-Patch015:       https://gitlab.freedesktop.org/drm/amdgpu/kernel/-/commit/955418796b2933be41c197b8b210da9191da29f7.patch
-Patch016:       https://gitlab.freedesktop.org/drm/amdgpu/kernel/-/commit/030d47cc6720e0f07b502876cdbd266e309f9461.patch
-Patch017:       https://gitlab.freedesktop.org/drm/amdgpu/kernel/-/commit/bebad45050945a3d668d6701fb77ae2571c5d44b.patch
-Patch018:       https://gitlab.freedesktop.org/agd5f/linux/-/commit/6675c4642b9aa7c44ac29e46ed83bbd830a379dd.patch
-Patch019:       https://gitlab.freedesktop.org/agd5f/linux/-/commit/1f47aaf3ff0d86365fab6f5bf6ec5f3ec1427655.patch
-Patch020:       https://gitlab.freedesktop.org/agd5f/linux/-/commit/fa3389c71379998525aaef4c04c30de9db81a52c.patch
-Patch021:       https://gitlab.freedesktop.org/agd5f/linux/-/commit/8b607d6f54b0049923369abecc9133b3c9fe10ca.patch
-Patch022:       https://gitlab.freedesktop.org/agd5f/linux/-/commit/640fd039dc8bd88d5edc98b2d55aaa6f677adf39.patch
-Patch023:       https://gitlab.freedesktop.org/agd5f/linux/-/commit/dd601ed4ce28efe8b1452b9323a2c5499060d71b.patch
-Patch024:       https://gitlab.freedesktop.org/drm/amdgpu/kernel/-/commit/5fd3b60d9b80bfe8b880336b5486309c69cf3865.patch
-Patch025:       https://github.com/CachyOS/linux/commit/6f11071b4a1a305d42e61fb7d943c703cbdbd6fb.patch
-Patch026:       https://github.com/CachyOS/linux/commit/5a42488d82a8df3e22507259babfc45fd88d820a.patch
-Patch027:       https://github.com/CachyOS/linux/commit/96f023bb8c13bbe6662f28da97cf5b5787e58fe1.patch
-Patch028:       https://gitlab.freedesktop.org/drm/misc/kernel/-/commit/3be436cbd3d265fe4fcfbb5b650edad7b2108443.patch
-Patch029:       https://gitlab.freedesktop.org/drm/misc/kernel/-/commit/cb104d395da48d965665fefe8502f71b6e7e3733.patch
-Patch030:       https://gitlab.freedesktop.org/drm/misc/kernel/-/commit/fd485d47437ba1700dd47205a63b9f389a00aa36.patch
-Patch031:       https://gitlab.freedesktop.org/drm/misc/kernel/-/commit/b537d87d2632c9a72afa08755b2de89a5b3ab70f.patch
-Patch032:       https://gitlab.freedesktop.org/drm/misc/kernel/-/commit/1ba6405638439a4214783965538b0196c8de8a5b.patch
-Patch033:       local-0001-amdgpu-separate-tlb-invalidation-fences.patch
-Patch034:       local-0002-ntsync-add-iocp-support.patch
-Patch035:       local-0003a-amdgpu-fix-dependency-fence-references.patch
-Patch036:       local-0003b-amdgpu-preserve-sdma-rollover-jobs.patch
-Patch037:       local-0003c-amdgpu-retain-failed-vm-clears.patch
-Patch038:       local-0003d-amdgpu-complete-failed-vm-updates.patch
-Patch039:       local-0003e-amdgpu-factor-vm-update-helpers.patch
-Patch040:       local-0003f-amdgpu-batch-bo-mapping-updates.patch
-Patch041:       local-0003g-amdgpu-batch-freed-range-updates.patch
-Patch042:       local-0004-amdgpu-send-hdmi-vrr-metadata-in-vtem-slot.patch
-Patch043:       local-0005-amdgpu-batch-sparse-va-operations.patch
-Patch044:       local-0006-amdgpu-share-sparse-bo-update-batches.patch
-Patch045:       local-0007-amdgpu-share-prt-update-batches.patch
-Patch046:       local-0008-amdgpu-grow-sdma-update-buffers.patch
-Patch047:       local-0009-amdgpu-scope-batch-retirements.patch
-Patch048:       local-0010-amdgpu-honor-completed-sparse-dependencies.patch
-Patch049:       local-0011-amdgpu-honor-passive-vrr-in-vtem.patch
-Patch050:       local-0012-amdgpu-fallback-to-cea-vrr-ranges.patch
-Patch051:       local-0013-amdgpu-enable-hdmi-vrr-on-pcon.patch
-Patch052:       local-0014-amdgpu-complete-allm-mode-signalling.patch
-Patch053:       local-0015-drm-parse-amd-freesync-ranges.patch
-Patch054:       local-0016-amdgpu-use-common-freesync-parser.patch
-Patch055:       local-0017-amdgpu-preserve-dc-scanout-positions.patch
+# Match PKGBUILD's GCC path. Driver and IOCP changes are already in the branch.
+Patch001:       https://github.com/CachyOS/linux/commit/96f023bb8c13bbe6662f28da97cf5b5787e58fe1.patch
+Patch002:       local-0018-amdgpu-preserve-dp-vrr-range-extension.patch
 
 %description
 Salkim's Linux kernel with AMDGPU sparse-mapping optimisations, HDMI/VRR
@@ -182,7 +131,7 @@ Requires:       %{name}-devel = %{version}-%{release}
 Installs matching Salkim kernel and development packages.
 
 %prep
-%setup -q -n linux-%{version}
+%setup -q -n kernel-salkim-%{kernel_branch}
 %autopatch -p1
 cp %{SOURCE1} .config
 
