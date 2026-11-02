@@ -82,10 +82,10 @@ fi
 
 pkgbase="linux-$_pkgsuffix"
 pkgver=7.3
-pkgrel=15
+pkgrel=17
 _srcname=kernel-salkim
 # Update this salkim-7.3 pin together with pkgrel.
-_kernel_commit=b28bd9caa21af45dfad92a430ea5be8d5fee81c5
+_kernel_commit=456824310327cf895a5633ab0b94fb501b41bbd6
 pkgdesc='Linux Salkim kernel with AMDGPU and ntsync IOCP improvements'
 arch=('x86_64')
 url="https://github.com/nanomatters/kernel-salkim"
