@@ -81,11 +81,11 @@ else
 fi
 
 pkgbase="linux-$_pkgsuffix"
-pkgver=7.3
-pkgrel=17
+pkgver=7.3.1
+pkgrel=1
 _srcname=kernel-salkim
 # Update this salkim-7.3 pin together with pkgrel.
-_kernel_commit=456824310327cf895a5633ab0b94fb501b41bbd6
+_kernel_commit=78c4218082285213bcc872992a4c4655eaefc6ae
 pkgdesc='Linux Salkim kernel with AMDGPU and ntsync IOCP improvements'
 arch=('x86_64')
 url="https://github.com/nanomatters/kernel-salkim"
@@ -126,7 +126,7 @@ source=(
 # LLVM makedepends
 if _is_lto_kernel; then
     makedepends+=(clang llvm lld)
-    source+=("https://raw.githubusercontent.com/cachyos/kernel-patches/master/${pkgver}/misc/dkms-clang.patch")
+    source+=("https://raw.githubusercontent.com/cachyos/kernel-patches/master/${pkgver%.*}/misc/dkms-clang.patch")
     BUILD_FLAGS=(
         CC=clang
         LD=ld.lld
