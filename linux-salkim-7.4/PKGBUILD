@@ -1,0 +1,486 @@
+# Based on the Arch Linux and CachyOS kernel PKGBUILDs.
+# Contributor: Peter Jung ptr1337 <admin@ptr1337.dev>
+# Contributor: Piotr Gorski <piotrgorski@cachyos.org>
+# Contributor: Vasiliy Stelmachenok <ventureo@cachyos.org>
+# Contributor: Jan Alexander Steffens (heftig) <jan.steffens@gmail.com>
+# Contributor: Tobias Powalowski <tpowa@archlinux.org>
+# Contributor: Thomas Baechler <thomas@archlinux.org>
+
+### BUILD OPTIONS
+# Set yes/no options or select one of the documented values below.
+
+### Tweak kernel options prior to a build via nconfig
+: "${_makenconfig:=no}"
+
+### Tweak kernel options prior to a build via xconfig
+: "${_makexconfig:=no}"
+
+# Use a modprobed-db module list to reduce build time.
+: "${_localmodcfg:=no}"
+
+# Path to the list of used modules
+: "${_localmodcfg_path:="$XDG_DATA_HOME/modprobed-db/modprobed.db"}"
+# Use the current kernel's .config file
+# Enabling this option will use the .config of the RUNNING kernel rather than
+# the bundled config. Useful when the package gets updated and you already went
+# through the trouble of customizing your config options. NOT recommended when
+# a new kernel is released, but again, convenient for package bumps.
+: "${_use_current:=no}"
+
+### Set performance governor as default
+: "${_per_gov:=no}"
+
+### Use BBR congestion control by default
+: "${_tcp_bbr:=no}"
+
+### Running with a 1000Hz, 300Hz, 250Hz or 100Hz tick rate
+: "${_HZ_ticks:=1000}"
+
+## Choose between periodic, idle or full
+### Full tickless can give higher performances in various cases but, depending on hardware, lower consistency.
+: "${_tickrate:=full}"
+
+## Choose between full or lazy preemption
+# Full: Makes all non-critical kernel code preemptible to reduce latency
+# Lazy: Same as full but instead of preempting immediately it waits for signals from the scheduler
+#       in an attempt to boost throughput.
+: "${_preempt:=full}"
+
+# Transparent hugepage policy: always or madvise.
+: "${_hugepage:=always}"
+
+# CPU target: native for this machine, generic for portable packages.
+: "${_processor_opt:=native}"
+
+# LTO mode: thin, thin-dist, full (Clang), or none (GCC).
+: "${_use_llvm_lto:=thin}"
+
+# Add an -lto suffix to the package name when requested.
+: "${_use_lto_suffix:=no}"
+
+# Use suffix -gcc when requested by the user
+# Enabled by default to show the difference between LTO kernels and GCC kernels
+: "${_use_gcc_suffix:=yes}"
+
+# Enable Clang control-flow integrity.
+: "${_use_kcfi:=no}"
+
+# Build a debug package with non-stripped vmlinux
+: "${_build_debug:=no}"
+
+_is_lto_kernel() {
+    [[ "$_use_llvm_lto" = "thin" || "$_use_llvm_lto" = "full"  || "$_use_llvm_lto" = "thin-dist" ]]
+}
+
+if _is_lto_kernel && [ "$_use_lto_suffix" = "yes"  ]; then
+    _pkgsuffix="salkim-lto"
+elif ! _is_lto_kernel && [ "$_use_gcc_suffix" = "yes" ]; then
+    _pkgsuffix="salkim-gcc"
+else
+    _pkgsuffix="salkim"
+fi
+
+pkgbase="linux-$_pkgsuffix"
+pkgver=7.4rc1
+pkgrel=1
+_srcname=kernel-salkim
+# Update this salkim-7.4 pin together with pkgrel.
+_kernel_commit=6db9ca927fd22710389364901371526733fce7cc
+pkgdesc='Linux Salkim kernel with AMDGPU and ntsync IOCP improvements'
+arch=('x86_64')
+url="https://github.com/nanomatters/kernel-salkim"
+license=('GPL-2.0-only')
+options=('!strip' '!debug' '!lto')
+makedepends=(
+  bc
+  binutils
+  cpio
+  gettext
+  git
+  glibc
+  libelf
+  libgcc
+  openssl
+  pahole
+  perl
+  python
+  rust
+  rust-bindgen
+  rust-src
+  tar
+  xxhash
+  xz
+  zlib
+  zstd
+)
+
+# Driver and IOCP changes are maintained on the kernel branch itself.
+source=(
+    "${_srcname}::git+${url}.git#commit=${_kernel_commit}"
+    "config"
+    # Keep the DP FreeSync range policy for this branch.
+    "local-0018-amdgpu-preserve-dp-vrr-range-extension.patch"
+)
+
+# LLVM makedepends
+if _is_lto_kernel; then
+    makedepends+=(clang llvm lld)
+    source+=("dkms-clang.patch")
+    BUILD_FLAGS=(
+        CC=clang
+        LD=ld.lld
+        LLVM=1
+        LLVM_IAS=1
+    )
+fi
+
+export KBUILD_BUILD_HOST=salkim
+export KBUILD_BUILD_USER="$pkgbase"
+export KBUILD_BUILD_TIMESTAMP="$(date -Ru${SOURCE_DATE_EPOCH:+d @$SOURCE_DATE_EPOCH})"
+
+_die() { error "$@" ; exit 1; }
+
+prepare() {
+    cd "$_srcname"
+
+    echo "Setting version..."
+    echo "-$pkgrel" > localversion.10-pkgrel
+    echo "${pkgbase#linux}" > localversion.20-pkgname
+
+    local patch_src src
+    for patch_src in "${source[@]}"; do
+        patch_src="${patch_src%%::*}"
+        src="${patch_src##*/}"
+        src="${src%.zst}"
+        [[ $src = *.patch ]] || continue
+        echo "Applying patch $src..."
+        patch -Np1 < "../$src"
+    done
+
+    echo "Setting config..."
+    cp ../config .config
+
+    ### Select CPU target
+    case "${_processor_opt,,}" in
+        native) scripts/config -e X86_NATIVE_CPU;;
+        generic) scripts/config -d X86_NATIVE_CPU;;
+        *) _die "The value '$_processor_opt' is invalid. Choose native or generic.";;
+    esac
+
+    ### Enable KCFI
+    if [ "$_use_kcfi" = "yes" ]; then
+        echo "Enabling kCFI"
+        scripts/config -e CFI_CLANG
+    fi
+
+    ### Select LLVM level
+    case "$_use_llvm_lto" in
+        thin) scripts/config -e LTO_CLANG_THIN;;
+        thin-dist) scripts/config -e LTO_CLANG_THIN_DIST;;
+        full) scripts/config -e LTO_CLANG_FULL;;
+        none) scripts/config -e LTO_NONE;;
+        *) _die "The value '$_use_llvm_lto' is invalid. Choose the correct one again.";;
+    esac
+
+    echo "Selecting '$_use_llvm_lto' LLVM level..."
+
+    if ! _is_lto_kernel; then
+        echo "Enabling QR Code Panic for GCC Kernels"
+        scripts/config --set-str DRM_PANIC_SCREEN qr_code -e DRM_PANIC_SCREEN_QR_CODE \
+            --set-str DRM_PANIC_SCREEN_QR_CODE_URL https://panic.archlinux.org/panic_report# \
+            --set-val CONFIG_DRM_PANIC_SCREEN_QR_VERSION 40
+    fi
+
+    ### Select tick rate
+    case "$_HZ_ticks" in
+        100|250|1000)
+            scripts/config -d HZ_300 -e "HZ_${_HZ_ticks}" --set-val HZ "${_HZ_ticks}";;
+        300)
+            scripts/config -e HZ_300 --set-val HZ 300;;
+        *)
+            _die "The value $_HZ_ticks is invalid. Choose the correct one again."
+    esac
+
+    echo "Setting tick rate to ${_HZ_ticks}Hz..."
+
+    ### Select performance governor
+    if [ "$_per_gov" = "yes" ]; then
+        echo "Setting performance governor..."
+        scripts/config -d CPU_FREQ_DEFAULT_GOV_SCHEDUTIL \
+            -e CPU_FREQ_DEFAULT_GOV_PERFORMANCE
+    fi
+
+    ### Select tick type
+    case "$_tickrate" in
+        periodic) scripts/config -d NO_HZ_IDLE -d NO_HZ_FULL -d NO_HZ -d NO_HZ_COMMON -e HZ_PERIODIC;;
+        idle) scripts/config -d HZ_PERIODIC -d NO_HZ_FULL -e NO_HZ_IDLE  -e NO_HZ -e NO_HZ_COMMON;;
+        full) scripts/config -d HZ_PERIODIC -d NO_HZ_IDLE -d CONTEXT_TRACKING_FORCE -e NO_HZ_FULL -e NO_HZ -e NO_HZ_COMMON -e CONTEXT_TRACKING;;
+        *) _die "The value '$_tickrate' is invalid. Choose the correct one again.";;
+    esac
+
+    echo "Selecting '$_tickrate' tick type..."
+
+    ### Select preempt type
+
+    case "$_preempt" in
+        full) scripts/config -e PREEMPT -d PREEMPT_LAZY;;
+        lazy) scripts/config -d PREEMPT -e PREEMPT_LAZY;;
+        *) _die "The value '$_preempt' is invalid. Choose the correct one again.";;
+    esac
+
+    echo "Selecting '$_preempt' preempt type..."
+
+    ### Enable BBR
+    if [ "$_tcp_bbr" = "yes" ]; then
+        echo "Disabling TCP_CONG_CUBIC..."
+        scripts/config -m TCP_CONG_CUBIC \
+            -d DEFAULT_CUBIC \
+            -e TCP_CONG_BBR \
+            -e DEFAULT_BBR \
+            --set-str DEFAULT_TCP_CONG bbr \
+            -m NET_SCH_FQ_CODEL \
+            -e NET_SCH_FQ \
+            -d CONFIG_DEFAULT_FQ_CODEL \
+            -e CONFIG_DEFAULT_FQ
+    fi
+
+    ### Select THP
+    case "$_hugepage" in
+        always) scripts/config -d TRANSPARENT_HUGEPAGE_MADVISE -e TRANSPARENT_HUGEPAGE_ALWAYS;;
+        madvise) scripts/config -d TRANSPARENT_HUGEPAGE_ALWAYS -e TRANSPARENT_HUGEPAGE_MADVISE;;
+        *) _die "The value '$_hugepage' is invalid. Choose the correct one again.";;
+    esac
+
+    echo "Selecting '$_hugepage' TRANSPARENT_HUGEPAGE config..."
+
+    ### Optionally use running kernel's config
+    # code originally by nous; http://aur.archlinux.org/packages.php?ID=40191
+    if [ "$_use_current" = "yes" ]; then
+        if [[ -s /proc/config.gz ]]; then
+            echo "Extracting config from /proc/config.gz..."
+            # modprobe configs
+            zcat /proc/config.gz > ./.config
+        else
+            warning "Your kernel was not compiled with IKPROC!"
+            warning "You cannot read the current config!"
+            warning "Aborting!"
+            exit
+        fi
+    fi
+
+    ### Optionally load needed modules for the make localmodconfig
+    # See https://aur.archlinux.org/packages/modprobed-db
+    if [ "$_localmodcfg" = "yes" ]; then
+        if [ -e "$_localmodcfg_path" ]; then
+            echo "Running Steven Rostedt's make localmodconfig now"
+            make "${BUILD_FLAGS[@]}" LSMOD="${_localmodcfg_path}" localmodconfig
+        else
+            _die "No modprobed.db data found"
+        fi
+    fi
+
+    ### Rewrite configuration
+    echo "Rewrite configuration..."
+    make "${BUILD_FLAGS[@]}" olddefconfig
+    make "${BUILD_FLAGS[@]}" syncconfig
+    diff -u ../config .config || :
+
+    ### Prepared version
+    make -s kernelrelease > version
+    echo "Prepared $pkgbase version $(<version)"
+
+    ### Running make nconfig
+    [ "$_makenconfig" = "yes" ] && make "${BUILD_FLAGS[@]}" nconfig
+
+    ### Running make xconfig
+    [ "$_makexconfig" = "yes" ] &&  make "${BUILD_FLAGS[@]}" xconfig
+
+    ### Save configuration for later reuse
+    echo "Save configuration for later reuse..."
+    local basedir="$(dirname "$(readlink "${srcdir}/config")")"
+    cat .config > "${basedir}/config-${pkgver}-${pkgrel}${pkgbase#linux}"
+}
+
+build() {
+    cd "$_srcname"
+    make "${BUILD_FLAGS[@]}" -j"$(nproc)" all
+    make -C tools/bpf/bpftool vmlinux.h feature-clang-bpf-co-re=1
+}
+
+_package() {
+    pkgdesc="The $pkgdesc kernel and modules"
+    depends=('coreutils' 'kmod' 'initramfs')
+    optdepends=('wireless-regdb: to set the correct wireless channels of your country'
+                'linux-firmware: firmware images needed for some devices'
+                'modprobed-db: Keeps track of EVERY kernel module that has ever been probed - useful for those of us who make localmodconfig'
+                'scx-scheds: to use sched-ext schedulers')
+    provides=(VIRTUALBOX-GUEST-MODULES WIREGUARD-MODULE KSMBD-MODULE NTSYNC-MODULE)
+
+    cd "$_srcname"
+
+    local modulesdir="$pkgdir/usr/lib/modules/$(<version)"
+
+    echo "Installing boot image..."
+    # systemd expects to find the kernel here to allow hibernation
+    # https://github.com/systemd/systemd/commit/edda44605f06a41fb86b7ab8128dcf99161d2344
+    install -Dm644 "$(make -s image_name)" "$modulesdir/vmlinuz"
+
+    # Used by mkinitcpio to name the kernel
+    echo "$pkgbase" | install -Dm644 /dev/stdin "$modulesdir/pkgbase"
+
+    echo "Installing modules..."
+    ZSTD_CLEVEL=9 make "${BUILD_FLAGS[@]}" INSTALL_MOD_PATH="$pkgdir/usr" INSTALL_MOD_STRIP=1 \
+        DEPMOD=/doesnt/exist  modules_install  # Suppress depmod
+
+    # remove build links
+    rm "$modulesdir"/build
+}
+
+_package-headers() {
+    pkgdesc="Headers and scripts for building modules for the $pkgdesc kernel"
+    depends=(binutils
+      glibc
+      libelf
+      libgcc
+      openssl
+      pahole
+      xxhash
+      zlib
+      zstd
+     "${pkgbase}")
+    provides=(LINUX-HEADERS)
+
+    if _is_lto_kernel; then
+        depends+=(clang llvm lld)
+    fi
+
+    cd "${_srcname}"
+    local builddir="$pkgdir/usr/lib/modules/$(<version)/build"
+
+    echo "Installing build files..."
+    install -Dt "$builddir" -m644 .config Makefile Module.symvers System.map \
+        localversion.* version vmlinux
+
+    install -Dt "$builddir" -m644 tools/bpf/bpftool/vmlinux.h
+
+    install -Dt "$builddir/kernel" -m644 kernel/Makefile
+    install -Dt "$builddir/arch/x86" -m644 arch/x86/Makefile
+    cp -t "$builddir" -a scripts
+    ln -srt "$builddir" "$builddir/scripts/gdb/vmlinux-gdb.py"
+
+    # required when STACK_VALIDATION is enabled
+    install -Dt "$builddir/tools/objtool" tools/objtool/objtool
+
+    # required when DEBUG_INFO_BTF_MODULES is enabled
+    if [ -f tools/bpf/resolve_btfids/resolve_btfids ]; then
+        install -Dt "$builddir/tools/bpf/resolve_btfids" tools/bpf/resolve_btfids/resolve_btfids
+    fi
+
+    echo "Installing headers..."
+    cp -t "$builddir" -a include
+    cp -t "$builddir/arch/x86" -a arch/x86/include
+    install -Dt "$builddir/arch/x86/kernel" -m644 arch/x86/kernel/asm-offsets.s
+
+    install -Dt "$builddir/drivers/md" -m644 drivers/md/*.h
+    install -Dt "$builddir/net/mac80211" -m644 net/mac80211/*.h
+
+    # https://bugs.archlinux.org/task/13146
+    install -Dt "$builddir/drivers/media/i2c" -m644 drivers/media/i2c/msp3400-driver.h
+
+    # https://bugs.archlinux.org/task/20402
+    install -Dt "$builddir/drivers/media/usb/dvb-usb" -m644 drivers/media/usb/dvb-usb/*.h
+    install -Dt "$builddir/drivers/media/dvb-frontends" -m644 drivers/media/dvb-frontends/*.h
+    install -Dt "$builddir/drivers/media/tuners" -m644 drivers/media/tuners/*.h
+
+    # https://bugs.archlinux.org/task/71392
+    install -Dt "$builddir/drivers/iio/common/hid-sensors" -m644 drivers/iio/common/hid-sensors/*.h
+
+    echo "Installing KConfig files..."
+    find . -name 'Kconfig*' -exec install -Dm644 {} "$builddir/{}" \;
+
+    # Install .rmeta files if they exist
+    if compgen -G "rust/*.rmeta" 1>/dev/null; then
+        install -Dt "$builddir/rust" -m644 rust/*.rmeta
+    fi
+
+    # Install .so files if they exist
+    if compgen -G "rust/*.so" 1>/dev/null; then
+        install -Dt "$builddir/rust" rust/*.so
+    fi
+
+    # Install generated Rust files
+    if [ -d rust/kernel ]; then
+        while IFS= read -r -d "" _gen; do
+            install -Dm644 "$_gen" "$builddir/$_gen"
+        done < <(find rust -type f -name 'generated_*.rs' -print0)
+    fi
+
+    echo "Installing unstripped VDSO..."
+    make INSTALL_MOD_PATH="$pkgdir/usr" vdso_install \
+      link=  # Suppress build-id symlinks
+
+    echo "Removing unneeded architectures..."
+    local arch
+    for arch in "$builddir"/arch/*/; do
+        [[ $arch = */x86/ ]] && continue
+        echo "Removing $(basename "$arch")"
+        rm -r "$arch"
+    done
+
+    echo "Removing documentation..."
+    rm -r "$builddir/Documentation"
+
+    echo "Removing broken symlinks..."
+    find -L "$builddir" -type l -printf 'Removing %P\n' -delete
+
+    echo "Removing loose objects..."
+    find "$builddir" -type f -name '*.o' -printf 'Removing %P\n' -delete
+
+    echo "Stripping build tools..."
+    local file
+    while read -rd '' file; do
+        case "$(file -Sib "$file")" in
+            application/x-sharedlib\;*)      # Libraries (.so)
+                strip -v $STRIP_SHARED "$file" ;;
+            application/x-archive\;*)        # Libraries (.a)
+                strip -v $STRIP_STATIC "$file" ;;
+            application/x-executable\;*)     # Binaries
+                strip -v $STRIP_BINARIES "$file" ;;
+            application/x-pie-executable\;*) # Relocatable binaries
+                strip -v $STRIP_SHARED "$file" ;;
+        esac
+    done < <(find "$builddir" -type f -perm -u+x ! -name vmlinux -print0)
+
+    echo "Stripping vmlinux..."
+    strip -v $STRIP_STATIC "$builddir/vmlinux"
+
+    echo "Adding symlink..."
+    mkdir -p "$pkgdir/usr/src"
+    ln -sr "$builddir" "$pkgdir/usr/src/$pkgbase"
+}
+
+_package-dbg(){
+    pkgdesc="Non-stripped vmlinux file for the $pkgdesc kernel"
+    depends=("${pkgbase}-headers")
+
+    cd "${_srcname}"
+    mkdir -p "$pkgdir/usr/src/debug/${pkgbase}"
+    install -Dt "$pkgdir/usr/src/debug/${pkgbase}" -m644 vmlinux
+}
+
+pkgname=("$pkgbase")
+[ "$_build_debug" = "yes" ] && pkgname+=("$pkgbase-dbg")
+pkgname+=("$pkgbase-headers")
+for _p in "${pkgname[@]}"; do
+    eval "package_$_p() {
+    $(declare -f "_package${_p#$pkgbase}")
+    _package${_p#$pkgbase}
+    }"
+done
+
+b2sums=('SKIP'
+        'ee18396f3520a1ec80bd22a7365eba4d6168cf39d75802ff95b0f481f0c9f5e9550d4046acaab0f5759f9fd8af3b0435e6aa10f32c4faf901821927e6370b198'
+        '5da554df3fc7593b1cf6587ee834193b90bec833fc330a5e3fa5df678e6129897dc5a31804a9245d6eda6787fb9a7b7ba2cf907d37979ec9b9a96fdd42b5b7b9')
+if _is_lto_kernel; then
+    b2sums+=('28f6b22fecbf52ab5eb38ee57b743884ce9c1a71587c3e92d8b7b3d0b755b603ecbb6a19e1196fc6f5de49a88ccffb5364876dd88da47143a6a84d756b8a6284')
+fi
