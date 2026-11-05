@@ -1,7 +1,7 @@
 pkgbase = linux-salkim
 	pkgdesc = Linux Salkim kernel with AMDGPU and ntsync IOCP improvements
 	pkgver = 7.3.1
-	pkgrel = 2
+	pkgrel = 3
 	url = https://github.com/nanomatters/kernel-salkim
 	arch = x86_64
 	license = GPL-2.0-only
@@ -31,7 +31,7 @@ pkgbase = linux-salkim
 	options = !strip
 	options = !debug
 	options = !lto
-	source = kernel-salkim::git+https://github.com/nanomatters/kernel-salkim.git#commit=edef945bf089cfed2502dd76766b650389706778
+	source = kernel-salkim::git+https://github.com/nanomatters/kernel-salkim.git#commit=b6b0da03a3736819f831fbfb31b35661f497cd83
 	source = config
 	source = 96f023bb8c13bbe6662f28da97cf5b5787e58fe1.patch::https://github.com/CachyOS/linux/commit/96f023bb8c13bbe6662f28da97cf5b5787e58fe1.patch
 	source = local-0018-amdgpu-preserve-dp-vrr-range-extension.patch
