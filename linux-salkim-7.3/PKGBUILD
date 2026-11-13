@@ -81,11 +81,11 @@ else
 fi
 
 pkgbase="linux-$_pkgsuffix"
-pkgver=7.3.3
-pkgrel=2
+pkgver=7.3.4
+pkgrel=1
 _srcname=kernel-salkim
 # Update this salkim-7.3 pin together with pkgrel.
-_kernel_commit=8fd65e1ca996528bd5a841d717d89f0d78279533
+_kernel_commit=0606b8cdf614c4cae0d57095896f81cf5ecbbfea
 pkgdesc='Linux Salkim kernel with AMDGPU and ntsync IOCP improvements'
 arch=('x86_64')
 url="https://github.com/nanomatters/kernel-salkim"
@@ -486,7 +486,7 @@ done
 b2sums=('SKIP'
         '49574923722de09cdd10150a11893cbd085573e52bbd043bdf07219756f807274507f3c8d787cae889efa97db4fc4ca21d8598d13821c9f76728da473ecb4ef2'
         'b4fc7c5d299bfa426bf0a8a8b6e1740aabef158c191c5e500e00d9988733d2846c164650b84515efc30f3ce9427eab9feb40b44f52eb3d1af879232d52d33199'
-        '08e71abe1970ef34a7c592eefeb66ff354aa9c8f317e81bd5f69e4d206f6b6fcfc764742274cb53aea31c017587ffb22a0aeab9165777aa9ce24d8ca90a41e9d')
+        '18fc4737e2ef36633b467514a50814302adcc0a55985865a262d1e5b49bdd9b33897f4e63c4df65f7fd08c3a4e973239b33371db1a17782e9601af48a7943412')
 if _is_lto_kernel; then
     b2sums+=('c992567bd7dd8553432be496ffa1c17e2f5ebe9c7edb51945cf977e1b742dd6517c210d8843bb82744ca705efd07f8027cd7dde41b50215ebd707a34aa81462e')
 fi

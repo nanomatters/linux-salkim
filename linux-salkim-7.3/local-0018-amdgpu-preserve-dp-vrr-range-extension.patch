@@ -14,9 +14,9 @@ Link: https://www.mail-archive.com/dri-devel@lists.freedesktop.org/msg589347.htm
 diff --git a/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_connector.c b/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_connector.c
 --- a/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_connector.c
 +++ b/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_connector.c
-@@ -3694,6 +3694,24 @@
+@@ -3868,6 +3868,24 @@
  }
- EXPORT_IF_KUNIT(get_amd_vsdb);
+ EXPORT_IF_KUNIT(parse_hdmi_amd_vsdb);
  
 +static void extend_range_from_vsdb(struct drm_display_info *display,
 +				  const struct amdgpu_hdmi_vsdb_info *vsdb)
@@ -39,7 +39,7 @@ diff --git a/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_connector.c b/drive
  /**
   * amdgpu_dm_update_freesync_caps - Update Freesync capabilities
   *
-@@ -3778,19 +3796,22 @@
+@@ -3952,19 +3970,22 @@
  	    (sink->sink_signal == SIGNAL_TYPE_DISPLAY_PORT ||
  	     sink->sink_signal == SIGNAL_TYPE_EDP)) {
  		get_amd_vsdb(amdgpu_dm_connector, &vsdb_info);

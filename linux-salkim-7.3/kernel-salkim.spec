@@ -12,8 +12,8 @@
 %undefine _include_frame_pointers
 
 Name:           kernel-salkim
-Version:        7.3.3
-Release:        2%{?dist}
+Version:        7.3.4
+Release:        1%{?dist}
 Summary:        Linux kernel with Salkim AMDGPU and ntsync IOCP improvements
 License:        GPL-2.0-only
 URL:            https://github.com/nanomatters/kernel-salkim
@@ -54,7 +54,7 @@ BuildRequires:  zstd
 %global devel_dir /usr/src/kernels/%{kver}
 
 # Update this salkim-7.3 pin together with Release.
-%global kernel_commit 8fd65e1ca996528bd5a841d717d89f0d78279533
+%global kernel_commit 0606b8cdf614c4cae0d57095896f81cf5ecbbfea
 
 Source0:        %{url}/archive/%{kernel_commit}.tar.gz
 Source1:        config
